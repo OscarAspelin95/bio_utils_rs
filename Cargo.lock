@@ -96,7 +96,6 @@ version = "0.1.0"
 dependencies = [
  "bio",
  "flate2",
- "lazy_static",
  "memchr",
  "needletail",
  "rstest",

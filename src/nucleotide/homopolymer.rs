@@ -1,6 +1,6 @@
 use crate::errors::BioError;
-use rstest::*;
 
+/// Checks whether the run at `[i, j)` qualifies as a homopolymer.
 #[inline]
 fn valid_homopolymer(
     i: usize,
@@ -16,11 +16,22 @@ fn valid_homopolymer(
     };
 
     match include_softmask {
-        true => return true,
-        false => return nt.is_ascii_uppercase(),
+        true => true,
+        false => nt.is_ascii_uppercase(),
     }
 }
 
+/// Finds all homopolymer runs in a DNA sequence.
+///
+/// Returns a list of `(start, end, nucleotide, length)` tuples for every
+/// run of identical bases at least `min_len` long. Coordinates are
+/// zero-based half-open intervals `[start, end)`.
+///
+/// When `include_softmask` is `false`, lowercase runs are ignored.
+///
+/// # Errors
+///
+/// Currently infallible but returns `Result` for forward compatibility.
 #[inline]
 pub fn find_homopolymers(
     seq: &[u8],
@@ -53,18 +64,24 @@ pub fn find_homopolymers(
     Ok(hps)
 }
 
-#[rstest]
-#[case(b"ATCG", 2, false, vec![])]
-#[case(b"AAAA", 4, false, vec![(0, 4, b'A', 4)])]
-#[case(b"aaaa", 4, true, vec![(0, 4, b'a', 4)])]
-#[case(b"aaaa", 4, false, vec![])]
-#[case(b"ATGGGGGCGccccAGT", 4, true, vec![(2, 7, b'G', 5), (9, 13, b'c', 4)])]
-fn test_find_homopolymer(
-    #[case] seq: &[u8],
-    #[case] min_len: usize,
-    #[case] include_softmask: bool,
-    #[case] expected: Vec<(usize, usize, u8, usize)>,
-) {
-    let hps = find_homopolymers(seq, min_len, include_softmask).expect("expected valid result");
-    assert_eq!(hps, expected);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::*;
+
+    #[rstest]
+    #[case(b"ATCG", 2, false, vec![])]
+    #[case(b"AAAA", 4, false, vec![(0, 4, b'A', 4)])]
+    #[case(b"aaaa", 4, true, vec![(0, 4, b'a', 4)])]
+    #[case(b"aaaa", 4, false, vec![])]
+    #[case(b"ATGGGGGCGccccAGT", 4, true, vec![(2, 7, b'G', 5), (9, 13, b'c', 4)])]
+    fn test_find_homopolymer(
+        #[case] seq: &[u8],
+        #[case] min_len: usize,
+        #[case] include_softmask: bool,
+        #[case] expected: Vec<(usize, usize, u8, usize)>,
+    ) {
+        let hps = find_homopolymers(seq, min_len, include_softmask).expect("expected valid result");
+        assert_eq!(hps, expected);
+    }
 }

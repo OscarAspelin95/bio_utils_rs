@@ -1,27 +1,32 @@
-use rstest::*;
-use std::collections::HashMap;
-
+/// Converts canonical nucleotide counts to relative frequencies.
+///
+/// Takes a `[A, C, G, T]` count array (as returned by [`nucleotide_counts`](super::nucleotide_counts))
+/// and returns a probability vector of the same order.
+/// Returns an empty vec if all counts are zero.
 #[inline]
-pub fn nucleotide_probabilities(canonical: &HashMap<&u8, usize>) -> Vec<f32> {
-    let canonical_count = canonical.values().sum::<usize>();
+pub fn nucleotide_probabilities(canonical: &[usize; 4]) -> Vec<f32> {
+    let canonical_count: usize = canonical.iter().sum();
 
-    let probs: Vec<f32> = canonical
-        .values()
-        .map(|count| *count as f32 / canonical_count as f32)
-        .collect();
+    if canonical_count == 0 {
+        return vec![];
+    }
 
-    probs
+    canonical
+        .iter()
+        .map(|&count| count as f32 / canonical_count as f32)
+        .collect()
 }
 
+/// Computes Shannon entropy (in bits) from a probability distribution.
+///
+/// Returns `0.0` for an empty slice. Maximum entropy for four equiprobable
+/// nucleotides is `2.0` bits.
 #[inline]
 pub fn shannon_entropy(probs: &[f32]) -> f32 {
-    // Probabilities of each nucleotide.
-
     let shannon: f32 = probs
         .iter()
         .map(|prob| match prob {
-            0_f32 => 0 as f32,
-            // This is safe because prob is never negative since (both count and sum_count are usize)
+            0_f32 => 0.0_f32,
             _ => prob * prob.log2(),
         })
         .sum();
@@ -29,13 +34,47 @@ pub fn shannon_entropy(probs: &[f32]) -> f32 {
     -shannon
 }
 
-#[rstest]
-#[case(vec![], 0.0)]
-#[case(vec![0.0_f32, 0.0_f32, 0.0_f32, 0.0_f32], 0.0)]
-#[case(vec![1.0_f32], 0.0)]
-#[case(vec![1.0_f32, 0.0_f32, 0.0_f32, 0.0_f32], 0.0)]
-#[case(vec![0.5_f32, 0.5_f32], 1.0)]
-#[case(vec![0.5_f32, 0.5_f32, 0.0_f32, 0.0_f32], 1.0)]
-fn test_shannon_entropy(#[case] probs: Vec<f32>, #[case] expected: f32) {
-    assert_eq!(shannon_entropy(&probs), expected);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::*;
+
+    #[rstest]
+    #[case(vec![], 0.0)]
+    #[case(vec![0.0_f32, 0.0_f32, 0.0_f32, 0.0_f32], 0.0)]
+    #[case(vec![1.0_f32], 0.0)]
+    #[case(vec![1.0_f32, 0.0_f32, 0.0_f32, 0.0_f32], 0.0)]
+    #[case(vec![0.5_f32, 0.5_f32], 1.0)]
+    #[case(vec![0.5_f32, 0.5_f32, 0.0_f32, 0.0_f32], 1.0)]
+    fn test_shannon_entropy(#[case] probs: Vec<f32>, #[case] expected: f32) {
+        assert_eq!(shannon_entropy(&probs), expected);
+    }
+
+    #[test]
+    fn test_nucleotide_probabilities_equal() {
+        let counts = [10, 10, 10, 10];
+        let probs = nucleotide_probabilities(&counts);
+        assert_eq!(probs, vec![0.25, 0.25, 0.25, 0.25]);
+    }
+
+    #[test]
+    fn test_nucleotide_probabilities_single() {
+        let counts = [100, 0, 0, 0];
+        let probs = nucleotide_probabilities(&counts);
+        assert_eq!(probs, vec![1.0, 0.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn test_nucleotide_probabilities_empty() {
+        let counts = [0, 0, 0, 0];
+        let probs = nucleotide_probabilities(&counts);
+        assert!(probs.is_empty());
+    }
+
+    #[test]
+    fn test_entropy_from_counts() {
+        let counts = [25, 25, 25, 25];
+        let probs = nucleotide_probabilities(&counts);
+        assert_eq!(shannon_entropy(&probs), 2.0);
+    }
 }

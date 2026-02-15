@@ -1,10 +1,22 @@
 use super::hash::mm_hash64;
 use crate::errors::BioError;
 use crate::nucleotide::NT_LOOKUP;
-use rstest::*;
 use std::collections::HashSet;
 
-/// non-SIMD accelerated FracMinHash implementation
+/// Computes a FracMinHash sketch of canonical k-mers from a DNA sequence.
+///
+/// Encodes each k-mer as a 2-bit packed `u64`, selects the canonical
+/// (lexicographically smaller) orientation of forward/reverse complement,
+/// and retains hashes that fall below `u64::MAX / ds_factor`.
+///
+/// Ambiguous bases (anything not `A`/`C`/`G`/`T`/`a`/`c`/`g`/`t`/`u`/`U`)
+/// reset the current k-mer window.
+///
+/// # Errors
+///
+/// Returns [`BioError::InvalidParameterError`] if:
+/// - `kmer_size` exceeds `seq.len()`
+/// - `ds_factor` is `0` or greater than `200`
 pub fn frac_min_hash(
     kmer_size: usize,
     ds_factor: u64,
@@ -18,7 +30,7 @@ pub fn frac_min_hash(
         )));
     }
 
-    if ds_factor <= 0 || ds_factor > 200 {
+    if ds_factor == 0 || ds_factor > 200 {
         return Err(BioError::InvalidParameterError(format!(
             "downsampling factor {} must be in range 1-200.",
             ds_factor
@@ -71,22 +83,36 @@ pub fn frac_min_hash(
     Ok(canonical_hashes)
 }
 
-#[rstest]
-#[case(b"AAAAAAAA", 3, 1)]
-#[case(b"AAAAAAAC", 3, 2)]
-#[case(b"ATCGATCGATCG", 4, 3)]
-#[case(b"ATCNATCNATCN", 4, 0)]
-fn test_kmerize(#[case] seq: &[u8], #[case] kmer_size: usize, #[case] expected_num_hashes: usize) {
-    let result = frac_min_hash(kmer_size, 1, seq).expect("Failed to run frac_min_hash");
-    assert_eq!(result.len(), expected_num_hashes);
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::*;
 
-#[rstest]
-#[case(b"AAAAAAAA", b"TTTTTTTT", 3)]
-#[case(b"AAAAAAAAAT", b"ATTTTTTTTT", 3)]
-fn test_kmerize_reverse(#[case] seq1: &[u8], #[case] seq2: &[u8], #[case] kmer_size: usize) {
-    let result1 = frac_min_hash(kmer_size, 1, seq1).expect("Failed to run frac_min_hash");
-    let result2 = frac_min_hash(kmer_size, 1, seq2).expect("Failed to run frac_min_hash");
+    #[rstest]
+    #[case(b"AAAAAAAA", 3, 1)]
+    #[case(b"AAAAAAAC", 3, 2)]
+    #[case(b"ATCGATCGATCG", 4, 3)]
+    #[case(b"ATCNATCNATCN", 4, 0)]
+    fn test_kmerize(
+        #[case] seq: &[u8],
+        #[case] kmer_size: usize,
+        #[case] expected_num_hashes: usize,
+    ) {
+        let result = frac_min_hash(kmer_size, 1, seq).expect("Failed to run frac_min_hash");
+        assert_eq!(result.len(), expected_num_hashes);
+    }
 
-    assert_eq!(result1, result2);
+    #[rstest]
+    #[case(b"AAAAAAAA", b"TTTTTTTT", 3)]
+    #[case(b"AAAAAAAAAT", b"ATTTTTTTTT", 3)]
+    fn test_kmerize_reverse(
+        #[case] seq1: &[u8],
+        #[case] seq2: &[u8],
+        #[case] kmer_size: usize,
+    ) {
+        let result1 = frac_min_hash(kmer_size, 1, seq1).expect("Failed to run frac_min_hash");
+        let result2 = frac_min_hash(kmer_size, 1, seq2).expect("Failed to run frac_min_hash");
+
+        assert_eq!(result1, result2);
+    }
 }

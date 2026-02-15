@@ -1,20 +1,29 @@
-use rstest::rstest;
-
+/// Converts an error probability to a Phred quality score.
+///
+/// Applies the standard formula: `Q = -10 * log10(error)`.
 #[inline]
 pub fn error_to_phred(error: f64) -> u8 {
     (-10_f64 * error.log10()) as u8
 }
 
+/// Returns the reverse complement of a DNA sequence.
+///
+/// Handles all IUPAC ambiguity codes. Unrecognized bytes are mapped to `N`.
+///
+/// # Examples
+///
+/// ```
+/// use bio_utils_rs::nucleotide::reverse_complement;
+///
+/// assert_eq!(reverse_complement(b"ACGT"), b"ACGT");
+/// assert_eq!(reverse_complement(b"AACG"), b"CGTT");
+/// ```
 #[inline]
-/// Thoughts:
-/// - Handle panic more gracefully.
-/// - Return an iterator instead of a Vec<u8>.
-/// - If returning vec, consider using vec with capacity and/orwith .extend().
 pub fn reverse_complement(seq: &[u8]) -> Vec<u8> {
-    let reverse_complement: Vec<u8> = seq
-        .iter()
-        .rev()
-        .map(|nt| match nt {
+    let mut rc = Vec::with_capacity(seq.len());
+
+    for &nt in seq.iter().rev() {
+        rc.push(match nt {
             // Canonical
             b'A' => b'T',
             b'C' => b'G',
@@ -31,34 +40,47 @@ pub fn reverse_complement(seq: &[u8]) -> Vec<u8> {
             b'D' => b'H', // AGT <-> ACT
             b'H' => b'D', // ACT <-> AGT
             b'V' => b'B', // ACG <-> CGT
-            b'N' => b'N', //
+            b'N' => b'N',
+            // Unknown nucleotides map to N
+            _ => b'N',
+        });
+    }
 
-            _ => panic!("Invalid nucleotide {}", *nt as char),
-        })
-        .collect();
-
-    reverse_complement
+    rc
 }
 
-#[rstest]
-#[case(b"A", vec![b'T'])]
-#[case(b"ATA", vec![b'T', b'A', b'T'])]
-#[case(b"AACGTT", vec![b'A', b'A', b'C', b'G', b'T', b'T'])]
-fn test_reverse_complement(#[case] seq: &[u8], #[case] expected: Vec<u8>) {
-    assert_eq!(reverse_complement(seq), expected);
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
 
-#[rstest]
-#[case(b"N", vec![b'N'])]
-#[case(b"TNT", vec![b'A', b'N', b'A'])]
-fn test_reverse_complement_ambig(#[case] seq: &[u8], #[case] expected: Vec<u8>) {
-    assert_eq!(reverse_complement(seq), expected);
-}
+    #[rstest]
+    #[case(b"A", vec![b'T'])]
+    #[case(b"ATA", vec![b'T', b'A', b'T'])]
+    #[case(b"AACGTT", vec![b'A', b'A', b'C', b'G', b'T', b'T'])]
+    fn test_reverse_complement(#[case] seq: &[u8], #[case] expected: Vec<u8>) {
+        assert_eq!(reverse_complement(seq), expected);
+    }
 
-#[rstest]
-#[case(0.1, 10)]
-#[case(0.01, 20)]
-#[case(0.001, 30)]
-fn test_error_to_phred(#[case] error: f64, #[case] expected: u8) {
-    assert_eq!(error_to_phred(error), expected);
+    #[rstest]
+    #[case(b"N", vec![b'N'])]
+    #[case(b"TNT", vec![b'A', b'N', b'A'])]
+    fn test_reverse_complement_ambig(#[case] seq: &[u8], #[case] expected: Vec<u8>) {
+        assert_eq!(reverse_complement(seq), expected);
+    }
+
+    #[rstest]
+    #[case(b"X", vec![b'N'])]
+    #[case(b"AXA", vec![b'T', b'N', b'T'])]
+    fn test_reverse_complement_unknown(#[case] seq: &[u8], #[case] expected: Vec<u8>) {
+        assert_eq!(reverse_complement(seq), expected);
+    }
+
+    #[rstest]
+    #[case(0.1, 10)]
+    #[case(0.01, 20)]
+    #[case(0.001, 30)]
+    fn test_error_to_phred(#[case] error: f64, #[case] expected: u8) {
+        assert_eq!(error_to_phred(error), expected);
+    }
 }
