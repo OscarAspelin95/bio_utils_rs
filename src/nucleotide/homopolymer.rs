@@ -1,6 +1,6 @@
 use crate::errors::BioError;
 
-/// Checks whether the run at `[i, j)` qualifies as a homopolymer.
+/// Checks whether the region for seq: &[u8] at `[i, j)` qualifies as a homopolymer.
 #[inline]
 fn valid_homopolymer(
     i: usize,
@@ -21,7 +21,7 @@ fn valid_homopolymer(
     }
 }
 
-/// Finds all homopolymer runs in a DNA sequence.
+/// Finds all homopolymer regions in a DNA sequence.
 ///
 /// Returns a list of `(start, end, nucleotide, length)` tuples for every
 /// run of identical bases at least `min_len` long. Coordinates are
@@ -32,6 +32,8 @@ fn valid_homopolymer(
 /// # Errors
 ///
 /// Currently infallible but returns `Result` for forward compatibility.
+///
+/// NOTE - is case sensitive. E.g., b"AAaa" is not considered a homopolymer of length 4.
 #[inline]
 pub fn find_homopolymers(
     seq: &[u8],
