@@ -64,6 +64,69 @@ pub fn find_homopolymers(
     Ok(hps)
 }
 
+/// Inspired by https://github.com/bluenote-1577/myloasm/blob/main/src/kmer_comp.rs#L22
+///
+/// Applies hard homopolymer compression for a given input nt sequence.
+/// e.g., b"AAAATTCGCG" -> vec![b'A', b'T', b'C', b'G', b'C', b'G']
+///
+/// TODO - try find an empirical value for the capacity for c_seq.
+/// Query some genomes from NCBI and calculate before/after to find a suitable empirical value.
+#[inline]
+pub fn homopolymer_compression(seq: &[u8]) -> Vec<u8> {
+    if seq.is_empty() {
+        return vec![];
+    }
+
+    // capacity can be at most seq.len(), but is in most cases lower.
+    let mut c_seq = Vec::with_capacity(seq.len());
+    let mut last = seq[0];
+    c_seq.push(last);
+
+    for &nt in &seq[1..] {
+        if nt != last {
+            c_seq.push(nt);
+            last = nt;
+        }
+    }
+
+    c_seq
+}
+
+/// Applies soft homopolymer compression for a given input nt sequence and max allowed hp length.
+/// e.g., b"AAAATTCGCG" (max_len=2) -> vec![b'A', b'A', b'T', b'T', b'C', b'G', b'C', b'G']
+///
+/// TODO - try find an empirical value for the capacity for c_seq.
+/// Query some genomes from NCBI and calculate before/after to find a suitable empirical value.
+fn homopolymer_compression_soft(seq: &[u8], max_len: usize) -> Vec<u8> {
+    let mut hp_comp: Vec<u8> = Vec::new();
+
+    if seq.is_empty() {
+        return hp_comp;
+    }
+
+    let mut current_nt = b'_';
+    let mut current_hp_len: usize = 0;
+
+    for nt in seq {
+        // Start of new hp
+        if nt != &current_nt {
+            current_nt = *nt;
+            hp_comp.push(*nt);
+            current_hp_len = 1;
+            continue;
+        }
+
+        // Otherwise same nt
+        if current_hp_len < max_len {
+            hp_comp.push(*nt);
+            current_hp_len += 1;
+            continue;
+        }
+    }
+
+    hp_comp
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -83,5 +146,31 @@ mod tests {
     ) {
         let hps = find_homopolymers(seq, min_len, include_softmask).expect("expected valid result");
         assert_eq!(hps, expected);
+    }
+
+    #[rstest]
+    #[case(b"", b"")]
+    #[case(b"T", b"T")]
+    #[case(b"AAAA", b"A")]
+    #[case(b"CCCGTTT", b"CGT")]
+    #[case(b"AAANNGGT", b"ANGT")]
+    fn test_homopolymer_compression(#[case] seq: &[u8], #[case] expected: &[u8]) {
+        let c_seq = homopolymer_compression(&seq[..]);
+        assert_eq!(&c_seq[..], expected);
+    }
+
+    #[rstest]
+    #[case(b"", 10, b"")]
+    #[case(b"ATCG", 1, b"ATCG")]
+    #[case(b"AAAAAAAA", 1, b"A")]
+    #[case(b"CCCCCCCCCCC", 2, b"CC")]
+    #[case(b"GGG", 5, b"GGG")]
+    #[case(b"TTT", 0, b"T")]
+    #[case(b"ATCAAAGTCCCCCCCCGT", 2, b"ATCAAGTCCGT")]
+    #[case(b"AAGGCCTT", 1, b"AGCT")]
+    #[case(b"AGCTTTT", 2, b"AGCTT")]
+    fn test_hp_comp_soft(#[case] seq: &[u8], #[case] max_len: usize, #[case] expected: &[u8]) {
+        let hp_comp = homopolymer_compression_soft(seq, max_len);
+        assert_eq!(&hp_comp[..], expected);
     }
 }
