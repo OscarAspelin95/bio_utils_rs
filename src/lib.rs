@@ -10,9 +10,14 @@
 
 pub mod aminoacid;
 pub mod errors;
-pub mod io;
 pub mod kmers;
 pub mod nucleotide;
+
+#[cfg(feature = "io")]
+pub mod io;
+
+#[cfg(feature = "simd")]
+pub mod simd_sketch;
 
 #[cfg(test)]
 pub mod test_utils;

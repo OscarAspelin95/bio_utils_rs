@@ -8,15 +8,25 @@ license = "Apache-2.0"
 repository = "https://github.com/OscarAspelin95/bio_utils_rs"
 keywords = ["bioinformatics", "utilities"]
 
+[features]
+io = ["flate2", "needletail", "serde", "serde_json"]
+simd = ["simd-minimizers", "packed-seq", "dashmap", "fixedbitset", "rustc-hash", "rayon"]
+
 [dependencies]
 bio = "3.0.0"
-flate2 = "1.1.9"
 lazy_static = "1.5.0"
 memchr = "2.8.0"
-needletail = "0.6.3"
-serde = "1.0.228"
-serde_json = "1.0.149"
 thiserror = "2.0.18"
+flate2 = { version = "1.1.9", optional = true }
+needletail = { version = "0.6.3", optional = true }
+serde = { version = "1.0.228", optional = true }
+serde_json = { version = "1.0.149", optional = true }
+simd-minimizers = { version = "2.0.1", optional = true }
+packed-seq = { version = "4.2.0", optional = true }
+dashmap = { version = "6.1.0", optional = true }
+fixedbitset = { version = "0.5.7", optional = true }
+rustc-hash = { version = "2.1.1", optional = true }
+rayon = { version = "1.11.0", optional = true }
 
 [dev-dependencies]
 rstest = "0.26.1"

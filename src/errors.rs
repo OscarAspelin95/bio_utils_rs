@@ -14,6 +14,7 @@ pub enum BioError {
     IoError(#[from] std::io::Error),
 
     /// JSON serialization or deserialization failed.
+    #[cfg(feature = "io")]
     #[error("Serialization error: {0}")]
     SerializationError(#[from] serde_json::Error),
 
@@ -26,6 +27,7 @@ pub enum BioError {
     FileDoesNotExistError(String),
 
     /// Needletail failed to open or parse a sequence file.
+    #[cfg(feature = "io")]
     #[error("Needletail failed to parse file: {0}")]
     NeedletailParseError(#[from] needletail::errors::ParseError),
 }
