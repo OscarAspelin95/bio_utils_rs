@@ -1,6 +1,6 @@
 [package]
 name = "bio_utils_rs"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2024"
 authors = ["oscar.aspelin@gmail.com"]
 description = "Utilities for bioinformatic analysis."
