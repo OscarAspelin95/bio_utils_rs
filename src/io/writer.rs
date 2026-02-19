@@ -158,9 +158,7 @@ mod tests {
         let outfile = tmp_dir.path().join("test.fastq.gz");
 
         let mut writer = bio_fastq_writer(Some(outfile.clone())).unwrap();
-        writer
-            .write("read1", None, b"ACGT", b"IIII")
-            .unwrap();
+        writer.write("read1", None, b"ACGT", b"IIII").unwrap();
         drop(writer);
 
         let metadata = std::fs::metadata(&outfile).unwrap();

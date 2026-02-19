@@ -31,11 +31,7 @@ pub const NT_LOOKUP: [u8; 256] = [
 pub static PHRED_TO_ERROR: LazyLock<[f64; MAX_PHRED_INDEX + 1]> = LazyLock::new(|| {
     let mut error_lookup = [1.0; MAX_PHRED_INDEX + 1];
 
-    for (i, entry) in error_lookup
-        .iter_mut()
-        .enumerate()
-        .skip(PHRED_OFFSET)
-    {
+    for (i, entry) in error_lookup.iter_mut().enumerate().skip(PHRED_OFFSET) {
         *entry = 10_f64.powf(-((i - PHRED_OFFSET) as f64) / 10.0);
     }
 
