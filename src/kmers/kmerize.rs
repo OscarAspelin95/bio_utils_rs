@@ -105,11 +105,7 @@ mod tests {
     #[rstest]
     #[case(b"AAAAAAAA", b"TTTTTTTT", 3)]
     #[case(b"AAAAAAAAAT", b"ATTTTTTTTT", 3)]
-    fn test_kmerize_reverse(
-        #[case] seq1: &[u8],
-        #[case] seq2: &[u8],
-        #[case] kmer_size: usize,
-    ) {
+    fn test_kmerize_reverse(#[case] seq1: &[u8], #[case] seq2: &[u8], #[case] kmer_size: usize) {
         let result1 = frac_min_hash(kmer_size, 1, seq1).expect("Failed to run frac_min_hash");
         let result2 = frac_min_hash(kmer_size, 1, seq2).expect("Failed to run frac_min_hash");
 
