@@ -22,7 +22,7 @@ needletail = { version = "0.6.3", optional = true }
 serde = { version = "1.0.228", optional = true }
 serde_json = { version = "1.0.149", optional = true }
 simd-minimizers = { version = "2.0.1", optional = true }
-packed-seq = { version = "4.2.0", optional = true }
+packed-seq = { version = "4.4.2", optional = true }
 dashmap = { version = "6.1.0", optional = true }
 fixedbitset = { version = "0.5.7", optional = true }
 rustc-hash = { version = "2.1.1", optional = true }
